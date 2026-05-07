@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bakbokim – שליחת הזמנות WhatsApp</title>
+  <meta name="description" content="מערכת חכמה לניהול הזמנות ושליחת הודעות WhatsApp מותאמות אישית מקובץ אקסל." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ─── APP SHELL ─────────────────────────────────── -->
+  <div class="app-shell">
+
+    <!-- ─── SIDEBAR ─────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <span class="logo-icon">🍺</span>
+        <span class="logo-text">Bakbokim</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-item active" id="navOrders" onclick="showPage('orders')">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          הזמנות
+        </button>
+        <button class="nav-item" id="navSettings" onclick="showPage('settings')">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+          הגדרות
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="theme-btn" id="themeToggle" title="החלף נושא">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" id="themeIcon"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+        </button>
+        <span class="sidebar-version">v1.0</span>
+      </div>
+    </aside>
+
+    <!-- ─── MAIN CONTENT ──────────────────────────────── -->
+    <main class="main-content">
+
+      <!-- ══════ ORDERS PAGE ══════ -->
+      <section class="page active" id="pageOrders">
+
+        <!-- Page header -->
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">הזמנות</h1>
+            <p class="page-subtitle">העלה קובץ אקסל וצור הודעות WhatsApp בלחיצה אחת</p>
+          </div>
+          <div class="header-actions">
+            <button class="btn btn-ghost" id="clearDataBtn" onclick="clearData()" style="display:none">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+              נקה נתונים
+            </button>
+          </div>
+        </div>
+
+        <!-- Upload zone -->
+        <div class="upload-zone" id="uploadZone">
+          <div class="upload-inner">
+            <div class="upload-icon">
+              <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+            <p class="upload-title">גרור ושחרר קובץ אקסל</p>
+            <p class="upload-subtitle">או לחץ לבחירת קובץ</p>
+            <label class="btn btn-primary upload-btn" for="fileInput">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              בחר קובץ אקסל
+            </label>
+            <input type="file" id="fileInput" accept=".xlsx,.xls" />
+            <p class="upload-hint">תומך ב-.xlsx ו-.xls</p>
+          </div>
+        </div>
+
+        <!-- Stats bar (shown after upload) -->
+        <div class="stats-bar" id="statsBar" style="display:none">
+          <div class="stat-card">
+            <span class="stat-number" id="statTotal">0</span>
+            <span class="stat-label">סה״כ הזמנות</span>
+          </div>
+          <div class="stat-card stat-sent">
+            <span class="stat-number" id="statSent">0</span>
+            <span class="stat-label">נשלחו</span>
+          </div>
+          <div class="stat-card stat-pending">
+            <span class="stat-number" id="statPending">0</span>
+            <span class="stat-label">ממתינות</span>
+          </div>
+          <div class="stat-spacer"></div>
+          <div class="filter-group">
+            <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">הכל</button>
+            <button class="filter-btn" data-filter="unsent" onclick="setFilter('unsent')">לא נשלחו</button>
+            <button class="filter-btn" data-filter="sent" onclick="setFilter('sent')">נשלחו</button>
+          </div>
+          <button class="btn btn-success" id="bulkSendBtn" onclick="sendBulk()" disabled>
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            שלח נבחרים
+          </button>
+        </div>
+
+        <!-- Orders table wrapper -->
+        <div class="table-wrapper" id="tableWrapper" style="display:none">
+          <table class="orders-table" id="ordersTable">
+            <thead id="tableHead"></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+
+      </section>
+
+      <!-- ══════ SETTINGS PAGE ══════ -->
+      <section class="page" id="pageSettings">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">הגדרות</h1>
+            <p class="page-subtitle">התאם את פרטי השולח ותבנית ההודעה</p>
+          </div>
+        </div>
+
+        <div class="settings-grid">
+
+          <!-- Sender details card -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon--blue">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </div>
+              <div>
+                <h2 class="card-title">פרטי השולח</h2>
+                <p class="card-subtitle">פרטים שיופיעו בכל הודעה</p>
+              </div>
+            </div>
+            <form id="settingsForm" class="settings-form">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="senderName">שם השולח</label>
+                  <input class="form-input" type="text" id="senderName" placeholder="רון" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="projectName">שם הפרויקט</label>
+                  <input class="form-input" type="text" id="projectName" placeholder="Bakbokim Project" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="city">עיר</label>
+                  <input class="form-input" type="text" id="city" placeholder="נתניה" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="pickupAddress">כתובת לאיסוף</label>
+                  <input class="form-input" type="text" id="pickupAddress" placeholder="סמילנסקי 79" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="calendarLink">קישור לתיאום איסוף</label>
+                <input class="form-input" type="url" id="calendarLink" placeholder="https://calendar.app.google/..." />
+              </div>
+            </form>
+          </div>
+
+          <!-- Message template card -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon card-icon--green">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+              </div>
+              <div>
+                <h2 class="card-title">תבנית הודעה</h2>
+                <p class="card-subtitle">ערוך את ההודעה שנשלחת ללקוחות</p>
+              </div>
+            </div>
+
+            <div class="template-vars">
+              <p class="vars-label">משתנים זמינים:</p>
+              <div class="vars-list">
+                <span class="var-chip" onclick="insertVar('{{name}}')">{{name}}</span>
+                <span class="var-chip" onclick="insertVar('{{orderNum}}')">{{orderNum}}</span>
+                <span class="var-chip" onclick="insertVar('{{senderName}}')">{{senderName}}</span>
+                <span class="var-chip" onclick="insertVar('{{projectName}}')">{{projectName}}</span>
+                <span class="var-chip" onclick="insertVar('{{city}}')">{{city}}</span>
+                <span class="var-chip" onclick="insertVar('{{items}}')">{{items}}</span>
+                <span class="var-chip" onclick="insertVar('{{calendarLink}}')">{{calendarLink}}</span>
+                <span class="var-chip" onclick="insertVar('{{address}}')">{{address}}</span>
+              </div>
+            </div>
+
+            <textarea class="form-textarea" id="messageTemplate" rows="10" spellcheck="false"></textarea>
+
+            <div class="card-footer">
+              <button class="btn btn-ghost btn-sm" onclick="resetTemplate()">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+                ברירת מחדל
+              </button>
+              <button class="btn btn-primary" onclick="saveSettings()">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13"/><polyline points="7 3 7 8 15 8"/></svg>
+                שמור הגדרות
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Saved indicator -->
+        <div class="save-toast" id="saveToast">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          ההגדרות נשמרו בהצלחה!
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ─── PREVIEW MODAL ──────────────────────────────── -->
+  <div class="modal-overlay" id="previewModal" onclick="closeModal(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">תצוגה מקדימה של ההודעה</h3>
+        <button class="modal-close" onclick="closePreviewModal()">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="whatsapp-bubble">
+          <pre id="previewText" class="preview-text"></pre>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="copyMessage()">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          העתק הודעה
+        </button>
+        <button class="btn btn-success" id="modalSendBtn" onclick="sendFromModal()">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          שלח ב‑WhatsApp
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
