@@ -345,16 +345,88 @@ function updateBulkBtn() {
   document.getElementById('bulkSendBtn').disabled = !anyChecked;
 }
 
+// ══════════════════════════════════════════════
+// BULK SEND QUEUE (Popup blocker safe)
+// ══════════════════════════════════════════════
+let queueList = [];
+let currentQueueStep = 0;
+
 function sendBulk() {
   const checked = [...document.querySelectorAll('.row-checkbox')].filter(cb => cb.checked);
   if (!checked.length) return;
-  checked.forEach((cb, i) => {
-    setTimeout(() => sendRow(Number(cb.dataset.idx)), i * 900);
-  });
-  // Uncheck all after triggering
+  
+  queueList = checked.map(cb => Number(cb.dataset.idx));
+  currentQueueStep = 0;
+  
+  document.getElementById('queueModal').classList.add('open');
+  processQueueStep();
+}
+
+function processQueueStep() {
+  if (currentQueueStep >= queueList.length) {
+    // Done
+    closeQueueModal();
+    return;
+  }
+  
+  const idx = queueList[currentQueueStep];
+  const row = rows[idx];
+  
+  // Update progress
+  document.getElementById('queueProgress').textContent = `הודעה ${currentQueueStep + 1} מתוך ${queueList.length}`;
+  
+  // Build preview
+  const initial = (row['Customer Name'] || 'ל').charAt(0);
+  const name = row['Customer Name'] || 'לקוח';
+  const phone = row['Phone'] || 'אין מספר';
+  
+  document.getElementById('queueRecipient').innerHTML = `
+    <div class="queue-avatar">${initial}</div>
+    <div>
+      <div class="queue-name">${name}</div>
+      <div class="queue-phone">${phone}</div>
+    </div>
+  `;
+  
+  document.getElementById('queuePreviewText').textContent = buildMessage(row);
+}
+
+function queueSendCurrent() {
+  const idx = queueList[currentQueueStep];
+  const row = rows[idx];
+  const url = buildWhatsAppUrl(row);
+  
+  // Open WhatsApp
+  window.open(url, '_blank');
+  
+  // Mark sent
+  markSent(idx);
+  
+  // Move to next
+  currentQueueStep++;
+  processQueueStep();
+}
+
+function queueSkip() {
+  currentQueueStep++;
+  processQueueStep();
+}
+
+function closeQueueModal() {
+  document.getElementById('queueModal').classList.remove('open');
+  queueList = [];
+  currentQueueStep = 0;
+  
+  // Uncheck all
   document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
   document.getElementById('selectAll').checked = false;
   updateBulkBtn();
+}
+
+function closeQueueOnBackdrop(e) {
+  if (e.target === document.getElementById('queueModal')) {
+    closeQueueModal();
+  }
 }
 
 // ══════════════════════════════════════════════
