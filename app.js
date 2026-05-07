@@ -154,7 +154,10 @@ function buildWhatsAppUrl(row) {
 const fileInput  = document.getElementById('fileInput');
 const uploadZone = document.getElementById('uploadZone');
 
-fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+fileInput.addEventListener('change', e => {
+  handleFile(e.target.files[0]);
+  e.target.value = ''; // Reset value so same file can be re-uploaded
+});
 
 // Drag & drop support
 uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragging'); });
