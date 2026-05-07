@@ -124,8 +124,11 @@ function buildMessage(row) {
   // Build the items section from column E onward (index 4+)
   const itemLines = [];
   for (let i = 4; i < headers.length; i++) {
-    const qty = parseFloat(row[headers[i]]) || 0;
-    if (qty > 0) itemLines.push(`${headers[i]}: ${qty}`);
+    const val = row[headers[i]];
+    // Include the column if it has a value and isn't "0"
+    if (val !== undefined && val !== null && val !== '' && val !== 0 && val !== '0') {
+      itemLines.push(`${headers[i]}: ${val}`);
+    }
   }
 
   return settings.template
