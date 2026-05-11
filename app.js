@@ -203,12 +203,13 @@ function handleFile(file) {
             if (h.toLowerCase().includes('phone') || h === 'טלפון' || h.includes('טלפון')) {
               if (obj[h]) {
                 const digits = String(obj[h]).replace(/\D/g, '');
-                if (digits.length === 9 && !digits.startsWith('0')) {
+                if (digits.startsWith('972')) {
+                  let rest = digits.slice(3);
+                  obj[h] = rest.startsWith('0') ? rest : '0' + rest; // Convert 972... to 05...
+                } else if (digits.length === 9 && !digits.startsWith('0')) {
                   obj[h] = '0' + digits; // Missing 0 for mobile
                 } else if (digits.length === 8 && /^[23489]/.test(digits)) {
                   obj[h] = '0' + digits; // Missing 0 for landline
-                } else if (digits.startsWith('972') && digits.length === 12) {
-                  obj[h] = '0' + digits.slice(3); // Convert 972... to 05... for display
                 }
               }
             }
