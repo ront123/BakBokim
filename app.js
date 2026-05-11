@@ -15,7 +15,7 @@ This is {{senderName}} from *Bakbokim Project* in {{city}}. Just letting you kno
 {{items}}
 
 You can grab a pickup slot at this link:
-📅 {{calendarLink}}
+📆 {{calendarLink}}
 Don't worry about being precise; it's mostly so I can block out the time for you.
 
 🏠 *Pickup Address:* _{{address}}, {{city}}_
@@ -28,7 +28,7 @@ Don't worry about being precise; it's mostly so I can block out the time for you
 {{items}}
 
 ניתן לקבוע מועד איסוף בקישור:
-📅 {{calendarLink}}
+📆 {{calendarLink}}
 אל דאגה אם צריך לשנות את הזמן או השעה, ניתן לעשות זאת שוב ביומן.
 
 🏠 *כתובת לאיסוף:* _{{address}}, {{city}}_`;
