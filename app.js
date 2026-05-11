@@ -4,34 +4,34 @@
 // ══════════════════════════════════════════════
 // CONSTANTS & STORAGE
 // ══════════════════════════════════════════════
-const STORAGE_SETTINGS = 'bakbokim_settings_v5'; // bump version = force template reset
+const STORAGE_SETTINGS = 'bakbokim_settings_v6'; // bump version = force template reset
 const STORAGE_SENT     = 'bakbokim_sent_v2';
 const STORAGE_THEME    = 'bakbokim_theme';
 
-const DEFAULT_TEMPLATE = `Hello {{name}} 👋
+const DEFAULT_TEMPLATE = `Hello {{name}}
 This is {{senderName}} from *Bakbokim Project* in {{city}}. Just letting you know that your order {{orderNum}} is ready for collection!
 
 *Order Summary:*
 {{items}}
 
 You can grab a pickup slot at this link:
-📆 {{calendarLink}}
+{{calendarLink}}
 Don't worry about being precise; it's mostly so I can block out the time for you.
 
-🏠 *Pickup Address:* _{{address}}, {{city}}_
+*Pickup Address:* _{{address}}, {{city}}_
 
 ---
-שלום {{name}} 👋
+שלום {{name}}
 {{senderName}} מ-*פרויקט בקבוקים* ב{{city}} כאן. ההזמנה שלך מספר {{orderNum}} מוכנה לאיסוף!
 
 *פירוט ההזמנה:*
 {{items}}
 
 ניתן לקבוע מועד איסוף בקישור:
-📆 {{calendarLink}}
+{{calendarLink}}
 אל דאגה אם צריך לשנות את הזמן או השעה, ניתן לעשות זאת שוב ביומן.
 
-🏠 *כתובת לאיסוף:* _{{address}}, {{city}}_`;
+*כתובת לאיסוף:* _{{address}}, {{city}}_`;
 
 const DEFAULT_SETTINGS = {
   senderName:    'רון',
@@ -58,12 +58,12 @@ let previewIdx   = null;        // Which row is being previewed
 // ══════════════════════════════════════════════
 function loadSettings() {
   try {
-    // Try loading v3 first (current version)
-    const v3 = JSON.parse(localStorage.getItem(STORAGE_SETTINGS) || 'null');
-    if (v3) return { ...DEFAULT_SETTINGS, ...v3 };
+    // Try loading current version
+    const vCurrent = JSON.parse(localStorage.getItem(STORAGE_SETTINGS) || 'null');
+    if (vCurrent) return { ...DEFAULT_SETTINGS, ...vCurrent };
 
-    // Migrate from v3 or v2: keep personal details but reset template
-    const prev = JSON.parse(localStorage.getItem('bakbokim_settings_v4') || localStorage.getItem('bakbokim_settings_v3') || localStorage.getItem('bakbokim_settings_v2') || 'null');
+    // Migrate from previous versions: keep personal details but reset template
+    const prev = JSON.parse(localStorage.getItem('bakbokim_settings_v5') || localStorage.getItem('bakbokim_settings_v4') || localStorage.getItem('bakbokim_settings_v3') || localStorage.getItem('bakbokim_settings_v2') || 'null');
     if (prev) {
       const migrated = {
         ...DEFAULT_SETTINGS,
