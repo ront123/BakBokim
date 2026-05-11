@@ -153,8 +153,7 @@ function buildMessage(row) {
 function buildWhatsAppUrl(row) {
   const phone   = cleanPhone(String(row['Billing Phone'] ?? row['Phone'] ?? row[headers[3]] ?? ''));
   const message = buildMessage(row);
-  // Using api.whatsapp.com instead of wa.me prevents emoji corruption during redirects on some browsers (like Safari)
-  return `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
+  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 }
 
 // ══════════════════════════════════════════════
