@@ -200,7 +200,8 @@ function handleFile(file) {
           
           // Fix missing leading zero for any phone column
           headers.forEach(h => {
-            if (h.toLowerCase().includes('phone') || h === 'טלפון' || h.includes('טלפון')) {
+            const lowerH = h.toLowerCase();
+            if (lowerH.includes('phone') || lowerH.includes('mobile') || lowerH.includes('cell') || lowerH.includes('טלפון') || lowerH.includes('נייד')) {
               if (obj[h]) {
                 const digits = String(obj[h]).replace(/\D/g, '');
                 if (digits.startsWith('972')) {
