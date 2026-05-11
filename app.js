@@ -50,6 +50,7 @@ let sentStatus = loadSent();    // { [uniqueKey]: { sentAt, count } }
 let headers    = [];
 let rows       = [];            // Array of row-objects keyed by header
 let activeFilter = 'all';
+let activeRowLabelFilter = 'all';
 let previewIdx   = null;        // Which row is being previewed
 
 // ══════════════════════════════════════════════
@@ -197,22 +198,44 @@ function handleFile(file) {
           const obj = {};
           headers.forEach((h, i) => { obj[h] = r[i] ?? ''; });
           
-          // Fix missing leading zero for phone numbers
-          ['Billing Phone', 'Phone'].forEach(phoneCol => {
-            if (obj[phoneCol]) {
-              const digits = String(obj[phoneCol]).replace(/\D/g, '');
-              if (digits.length === 9 && !digits.startsWith('0')) {
-                obj[phoneCol] = '0' + digits; // Missing 0 for mobile
-              } else if (digits.length === 8 && /^[23489]/.test(digits)) {
-                obj[phoneCol] = '0' + digits; // Missing 0 for landline
-              } else if (digits.startsWith('972') && digits.length === 12) {
-                obj[phoneCol] = '0' + digits.slice(3); // Convert 972... to 05... for display
+          // Fix missing leading zero for any phone column
+          headers.forEach(h => {
+            if (h.toLowerCase().includes('phone') || h === 'טלפון' || h.includes('טלפון')) {
+              if (obj[h]) {
+                const digits = String(obj[h]).replace(/\D/g, '');
+                if (digits.length === 9 && !digits.startsWith('0')) {
+                  obj[h] = '0' + digits; // Missing 0 for mobile
+                } else if (digits.length === 8 && /^[23489]/.test(digits)) {
+                  obj[h] = '0' + digits; // Missing 0 for landline
+                } else if (digits.startsWith('972') && digits.length === 12) {
+                  obj[h] = '0' + digits.slice(3); // Convert 972... to 05... for display
+                }
               }
             }
           });
           
           return obj;
         });
+
+      // Populate row label filter
+      const labelFilterWrapper = document.getElementById('rowLabelFilterWrapper');
+      const labelFilter = document.getElementById('rowLabelFilter');
+      if (labelFilterWrapper && labelFilter) {
+        const labelCol = headers.find(h => h === 'תוויות שורה' || h === 'Row Labels');
+        if (labelCol) {
+          const uniqueLabels = [...new Set(rows.map(r => r[labelCol]).filter(Boolean))];
+          labelFilter.innerHTML = '<option value="all">כל התוויות</option>';
+          uniqueLabels.forEach(label => {
+            const opt = document.createElement('option');
+            opt.value = label;
+            opt.textContent = label;
+            labelFilter.appendChild(opt);
+          });
+          labelFilterWrapper.style.display = uniqueLabels.length > 0 ? 'inline-block' : 'none';
+        } else {
+          labelFilterWrapper.style.display = 'none';
+        }
+      }
 
       uploadZone.classList.add('has-data');
       document.getElementById('clearDataBtn').style.display = '';
@@ -274,6 +297,11 @@ function renderTable() {
     // Apply filter
     if (activeFilter === 'sent'   && !sent) tr.classList.add('row-hidden');
     if (activeFilter === 'unsent' &&  sent) tr.classList.add('row-hidden');
+
+    const labelCol = headers.find(h => h === 'תוויות שורה' || h === 'Row Labels');
+    if (labelCol && activeRowLabelFilter !== 'all' && row[labelCol] !== activeRowLabelFilter) {
+      tr.classList.add('row-hidden');
+    }
 
     // Checkbox cell
     const tdChk = document.createElement('td');
@@ -353,6 +381,11 @@ function setFilter(filter) {
   document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.filter === filter);
   });
+  renderTable();
+}
+
+function setRowLabelFilter(val) {
+  activeRowLabelFilter = val;
   renderTable();
 }
 
