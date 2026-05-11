@@ -101,8 +101,8 @@ function saveSent() {
 
 // Unique key per order (phone + order number) so status persists across re-uploads
 function sentKey(row) {
-  const phone = cleanPhone(String(row[headers[3]] ?? ''));
-  const order = String(row[headers[0]] ?? '');
+  const phone = cleanPhone(String(row['Billing Phone'] ?? row['Phone'] ?? row[headers[3]] ?? ''));
+  const order = String(row['Name'] ?? row[headers[1]] ?? '');
   return `${phone}_${order}`;
 }
 
@@ -121,19 +121,26 @@ function cleanPhone(raw) {
 // MESSAGE BUILDING
 // ══════════════════════════════════════════════
 function buildMessage(row) {
-  // Build the items section from column E onward (index 4+)
+  // Build the items section: exclude known non-item columns
+  const excludeCols = ['תוויות שורה', 'Name', 'Shipping Name', 'Customer Name', 'Billing Phone', 'Phone', 'Email', 'סכום כולל'];
   const itemLines = [];
-  for (let i = 4; i < headers.length; i++) {
-    const val = row[headers[i]];
+  
+  for (let h of headers) {
+    if (excludeCols.includes(h)) continue;
+    
+    const val = row[h];
     // Include the column if it has a value and isn't "0"
     if (val !== undefined && val !== null && val !== '' && val !== 0 && val !== '0') {
-      itemLines.push(`${headers[i]}: ${val}`);
+      itemLines.push(`${h}: ${val}`);
     }
   }
 
+  const customerName = row['Shipping Name'] ?? row['Customer Name'] ?? row[headers[2]] ?? '';
+  const orderNum = row['Name'] ?? row[headers[1]] ?? '';
+
   return settings.template
-    .replace(/{{name}}/g,         row[headers[1]] ?? '')
-    .replace(/{{orderNum}}/g,     row[headers[0]] ?? '')
+    .replace(/{{name}}/g,         customerName)
+    .replace(/{{orderNum}}/g,     orderNum)
     .replace(/{{senderName}}/g,   settings.senderName)
     .replace(/{{projectName}}/g,  settings.projectName)
     .replace(/{{city}}/g,         settings.city)
@@ -143,7 +150,7 @@ function buildMessage(row) {
 }
 
 function buildWhatsAppUrl(row) {
-  const phone   = cleanPhone(String(row[headers[3]] ?? ''));
+  const phone   = cleanPhone(String(row['Billing Phone'] ?? row['Phone'] ?? row[headers[3]] ?? ''));
   const message = buildMessage(row);
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 }
@@ -189,6 +196,21 @@ function handleFile(file) {
         .map(r => {
           const obj = {};
           headers.forEach((h, i) => { obj[h] = r[i] ?? ''; });
+          
+          // Fix missing leading zero for phone numbers
+          ['Billing Phone', 'Phone'].forEach(phoneCol => {
+            if (obj[phoneCol]) {
+              const digits = String(obj[phoneCol]).replace(/\D/g, '');
+              if (digits.length === 9 && !digits.startsWith('0')) {
+                obj[phoneCol] = '0' + digits; // Missing 0 for mobile
+              } else if (digits.length === 8 && /^[23489]/.test(digits)) {
+                obj[phoneCol] = '0' + digits; // Missing 0 for landline
+              } else if (digits.startsWith('972') && digits.length === 12) {
+                obj[phoneCol] = '0' + digits.slice(3); // Convert 972... to 05... for display
+              }
+            }
+          });
+          
           return obj;
         });
 
@@ -382,14 +404,14 @@ function processQueueStep() {
   document.getElementById('queueProgress').textContent = `הודעה ${currentQueueStep + 1} מתוך ${queueList.length}`;
   
   // Build preview
-  const initial = (row['Customer Name'] || 'ל').charAt(0);
-  const name = row['Customer Name'] || 'לקוח';
-  const phone = row['Phone'] || 'אין מספר';
+  const customerName = row['Shipping Name'] || row['Customer Name'] || 'לקוח';
+  const initial = customerName.charAt(0);
+  const phone = row['Billing Phone'] || row['Phone'] || 'אין מספר';
   
   document.getElementById('queueRecipient').innerHTML = `
     <div class="queue-avatar">${initial}</div>
     <div>
-      <div class="queue-name">${name}</div>
+      <div class="queue-name">${customerName}</div>
       <div class="queue-phone">${phone}</div>
     </div>
   `;
