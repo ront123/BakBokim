@@ -52,6 +52,8 @@ let rows       = [];            // Array of row-objects keyed by header
 let activeFilter = 'all';
 let activeRowLabelFilter = 'all';
 let previewIdx   = null;        // Which row is being previewed
+let currentWorkbook = null;
+let currentSheetName = "";
 
 // ══════════════════════════════════════════════
 // STORAGE HELPERS
@@ -176,82 +178,154 @@ uploadZone.addEventListener('drop', e => {
   const file = e.dataTransfer.files[0];
   if (file) handleFile(file);
 });
-
 function handleFile(file) {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = evt => {
     try {
-      const wb   = XLSX.read(new Uint8Array(evt.target.result), { type: 'array' });
-      const ws   = wb.Sheets[wb.SheetNames[0]];
-      const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-
-      if (!data || data.length < 2) {
-        alert('הקובץ ריק או חסרות כותרות. ודא שהשורה הראשונה מכילה כותרות עמודות.');
-        return;
-      }
-
-      headers = data[0].map((h, i) => h?.toString().trim() || `עמודה_${i + 1}`);
-      rows    = data.slice(1)
-        .filter(r => r.some(c => c !== ''))   // skip blank rows
-        .map(r => {
-          const obj = {};
-          headers.forEach((h, i) => { obj[h] = r[i] ?? ''; });
-          
-          // Fix missing leading zero for any phone column
-          headers.forEach(h => {
-            const lowerH = h.toLowerCase();
-            if (lowerH.includes('phone') || lowerH.includes('mobile') || lowerH.includes('cell') || lowerH.includes('טלפון') || lowerH.includes('נייד')) {
-              if (obj[h]) {
-                const digits = String(obj[h]).replace(/\D/g, '');
-                if (digits.startsWith('972')) {
-                  let rest = digits.slice(3);
-                  obj[h] = rest.startsWith('0') ? rest : '0' + rest; // Convert 972... to 05...
-                } else if (digits.length === 9 && !digits.startsWith('0')) {
-                  obj[h] = '0' + digits; // Missing 0 for mobile
-                } else if (digits.length === 8 && /^[23489]/.test(digits)) {
-                  obj[h] = '0' + digits; // Missing 0 for landline
-                }
-              }
-            }
-          });
-          
-          return obj;
-        });
-
-      // Populate row label filter
-      const labelFilterWrapper = document.getElementById('rowLabelFilterWrapper');
-      const labelFilter = document.getElementById('rowLabelFilter');
-      if (labelFilterWrapper && labelFilter) {
-        const labelCol = headers.find(h => h === 'תוויות שורה' || h === 'Row Labels');
-        if (labelCol) {
-          const uniqueLabels = [...new Set(rows.map(r => r[labelCol]).filter(Boolean))];
-          labelFilter.innerHTML = '<option value="all">כל התוויות</option>';
-          uniqueLabels.forEach(label => {
-            const opt = document.createElement('option');
-            opt.value = label;
-            opt.textContent = label;
-            labelFilter.appendChild(opt);
-          });
-          labelFilterWrapper.style.display = uniqueLabels.length > 0 ? 'inline-block' : 'none';
-        } else {
-          labelFilterWrapper.style.display = 'none';
+      currentWorkbook = XLSX.read(new Uint8Array(evt.target.result), { type: 'array' });
+      
+      // Auto-detect the best sheet to parse
+      let defaultSheetName = currentWorkbook.SheetNames[0];
+      for (const name of currentWorkbook.SheetNames) {
+        if (name.toUpperCase() === 'DATA') {
+          defaultSheetName = name;
+          break;
         }
       }
-
-      uploadZone.classList.add('has-data');
-      document.getElementById('clearDataBtn').style.display = '';
-      document.getElementById('statsBar').style.display = 'flex';
-      document.getElementById('tableWrapper').style.display = '';
-
-      renderTable();
-      updateStats();
+      
+      // If 'DATA' was not found, search for sheet containing phone-related headers
+      if (defaultSheetName === currentWorkbook.SheetNames[0]) {
+        for (const name of currentWorkbook.SheetNames) {
+          const ws = currentWorkbook.Sheets[name];
+          const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+          if (data && data.length > 0) {
+            const firstRow = data[0].map(c => String(c).toLowerCase());
+            const hasPhone = firstRow.some(c => c.includes('phone') || c.includes('mobile') || c.includes('נייד') || c.includes('טלפון'));
+            const hasName = firstRow.some(c => c.includes('name') || c.includes('שם') || c.includes('לקוח'));
+            if (hasPhone && hasName) {
+              defaultSheetName = name;
+              break;
+            }
+          }
+        }
+      }
+      
+      currentSheetName = defaultSheetName;
+      
+      // Populate sheet selection dropdown
+      const sheetSelectWrapper = document.getElementById('sheetSelectWrapper');
+      const sheetSelect = document.getElementById('sheetSelect');
+      if (sheetSelectWrapper && sheetSelect) {
+        if (currentWorkbook.SheetNames.length > 1) {
+          sheetSelect.innerHTML = '';
+          currentWorkbook.SheetNames.forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name;
+            if (name === currentSheetName) opt.selected = true;
+            sheetSelect.appendChild(opt);
+          });
+          sheetSelectWrapper.style.display = 'inline-block';
+        } else {
+          sheetSelectWrapper.style.display = 'none';
+        }
+      }
+      
+      parseActiveSheet();
     } catch (err) {
       console.error(err);
       alert('שגיאה בקריאת הקובץ. ודא שהוא קובץ אקסל תקין.');
     }
   };
   reader.readAsArrayBuffer(file);
+}
+
+function parseActiveSheet() {
+  if (!currentWorkbook || !currentSheetName) return;
+  try {
+    const ws   = currentWorkbook.Sheets[currentSheetName];
+    const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+    if (!data || data.length < 2) {
+      alert('הגיליון ריק או חסרות כותרות. ודא שהשורה הראשונה מכילה כותרות עמודות.');
+      return;
+    }
+
+    headers = data[0].map((h, i) => h?.toString().trim() || `עמודה_${i + 1}`);
+    rows    = data.slice(1)
+      .filter(r => r.some(c => c !== ''))   // skip blank rows
+      .map(r => {
+        const obj = {};
+        headers.forEach((h, i) => { obj[h] = r[i] ?? ''; });
+        
+        // Fix missing leading zero for any phone column
+        headers.forEach(h => {
+          const lowerH = h.toLowerCase();
+          if (lowerH.includes('phone') || lowerH.includes('mobile') || lowerH.includes('cell') || lowerH.includes('טלפון') || lowerH.includes('נייד')) {
+            if (obj[h]) {
+              const digits = String(obj[h]).replace(/\D/g, '');
+              if (digits.startsWith('972')) {
+                let rest = digits.slice(3);
+                obj[h] = rest.startsWith('0') ? rest : '0' + rest; // Convert 972... to 05...
+              } else if (digits.length === 9 && !digits.startsWith('0')) {
+                obj[h] = '0' + digits; // Missing 0 for mobile
+              } else if (digits.length === 8 && /^[23489]/.test(digits)) {
+                obj[h] = '0' + digits; // Missing 0 for landline
+              }
+            }
+          }
+        });
+        
+        return obj;
+      });
+
+    // Populate row label filter
+    const labelFilterWrapper = document.getElementById('rowLabelFilterWrapper');
+    const labelFilter = document.getElementById('rowLabelFilter');
+    if (labelFilterWrapper && labelFilter) {
+      const labelCol = headers.find(h => h === 'תוויות שורה' || h === 'Row Labels');
+      if (labelCol) {
+        const uniqueLabels = [...new Set(rows.map(r => r[labelCol]).filter(Boolean))];
+        labelFilter.innerHTML = '<option value="all">כל התוויות</option>';
+        uniqueLabels.forEach(label => {
+          const opt = document.createElement('option');
+          opt.value = label;
+          opt.textContent = label;
+          labelFilter.appendChild(opt);
+        });
+        labelFilterWrapper.style.display = uniqueLabels.length > 0 ? 'inline-block' : 'none';
+      } else {
+        labelFilterWrapper.style.display = 'none';
+      }
+    }
+
+    uploadZone.classList.add('has-data');
+    document.getElementById('clearDataBtn').style.display = '';
+    document.getElementById('statsBar').style.display = 'flex';
+    document.getElementById('tableWrapper').style.display = '';
+
+    renderTable();
+    updateStats();
+  } catch (err) {
+    console.error(err);
+    alert('שגיאה בקריאת הגיליון.');
+  }
+}
+
+function changeSheet(name) {
+  currentSheetName = name;
+  activeFilter = 'all';
+  activeRowLabelFilter = 'all';
+  const rowLabelFilter = document.getElementById('rowLabelFilter');
+  if (rowLabelFilter) rowLabelFilter.value = 'all';
+  
+  // Reset active filter button styling
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.filter === 'all');
+  });
+
+  parseActiveSheet();
 }
 
 // ══════════════════════════════════════════════
@@ -558,6 +632,8 @@ function clearData() {
   if (!confirm('האם לנקות את הנתונים? סטטוס השליחה יישמר.')) return;
   rows = [];
   headers = [];
+  currentWorkbook = null;
+  currentSheetName = "";
   fileInput.value = '';
   uploadZone.classList.remove('has-data');
   document.getElementById('clearDataBtn').style.display = 'none';
@@ -565,6 +641,9 @@ function clearData() {
   document.getElementById('tableWrapper').style.display = 'none';
   document.getElementById('tableHead').innerHTML = '';
   document.getElementById('tableBody').innerHTML = '';
+  
+  const sheetSelectWrapper = document.getElementById('sheetSelectWrapper');
+  if (sheetSelectWrapper) sheetSelectWrapper.style.display = 'none';
 }
 
 // ══════════════════════════════════════════════

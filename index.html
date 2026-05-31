@@ -98,6 +98,10 @@
             <button class="filter-btn" data-filter="unsent" onclick="setFilter('unsent')">לא נשלחו</button>
             <button class="filter-btn" data-filter="sent" onclick="setFilter('sent')">נשלחו</button>
           </div>
+          <div class="filter-group" id="sheetSelectWrapper" style="display:none; margin-right:1rem;">
+            <select id="sheetSelect" class="form-input" style="padding: 0.4rem 2rem 0.4rem 1rem; border-radius: 100px; height: auto; font-size: 0.9rem;" onchange="changeSheet(this.value)">
+            </select>
+          </div>
           <div class="filter-group" id="rowLabelFilterWrapper" style="display:none; margin-right:1rem;">
             <select id="rowLabelFilter" class="form-input" style="padding: 0.4rem 2rem 0.4rem 1rem; border-radius: 100px; height: auto; font-size: 0.9rem;" onchange="setRowLabelFilter(this.value)">
               <option value="all">כל התוויות</option>
