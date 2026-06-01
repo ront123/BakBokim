@@ -102,10 +102,32 @@ function saveSent() {
   localStorage.setItem(STORAGE_SENT, JSON.stringify(sentStatus));
 }
 
+// DYNAMIC COLUMN RESOLUTION
+// ══════════════════════════════════════════════
+function getDynamicPhone(row) {
+  if (row['Billing Phone']) return row['Billing Phone'];
+  if (row['Phone']) return row['Phone'];
+  const phoneKey = headers.find(h => /phone|mobile|נייד|טלפון/i.test(h));
+  return phoneKey ? row[phoneKey] : '';
+}
+
+function getDynamicOrder(row) {
+  if (row['Name']) return row['Name'];
+  const orderKey = headers.find(h => /^name$/i.test(h) || /order.?num|מספר/i.test(h));
+  return orderKey ? row[orderKey] : '';
+}
+
+function getDynamicName(row) {
+  if (row['Shipping Name']) return row['Shipping Name'];
+  if (row['Customer Name']) return row['Customer Name'];
+  const nameKey = headers.find(h => /shipping.?name|customer.?name|שם.?לקוח/i.test(h));
+  return nameKey ? row[nameKey] : '';
+}
+
 // Unique key per order (phone + order number) so status persists across re-uploads
 function sentKey(row) {
-  const phone = cleanPhone(String(row['Billing Phone'] ?? row['Phone'] ?? row[headers[3]] ?? ''));
-  const order = String(row['Name'] ?? row[headers[1]] ?? '');
+  const phone = cleanPhone(String(getDynamicPhone(row)));
+  const order = String(getDynamicOrder(row));
   return `${phone}_${order}`;
 }
 
@@ -125,11 +147,25 @@ function cleanPhone(raw) {
 // ══════════════════════════════════════════════
 function buildMessage(row) {
   // Build the items section: exclude known non-item columns
-  const excludeCols = ['תוויות שורה', 'Name', 'Shipping Name', 'Customer Name', 'Billing Phone', 'Phone', 'Email', 'סכום כולל'];
+  const excludeCols = ['תוויות שורה', 'Name', 'Shipping Name', 'Customer Name', 'Billing Phone', 'Phone', 'Email', 'סכום כולל', 'Row Labels'];
   const itemLines = [];
   
+  // Find key columns dynamically to exclude them from the items list as well
+  const phoneKey = headers.find(h => /phone|mobile|נייד|טלפון/i.test(h));
+  const nameKey  = headers.find(h => /shipping.?name|customer.?name|שם.?לקוח/i.test(h));
+  const orderKey = headers.find(h => /^name$/i.test(h) || /order.?num|מספר/i.test(h));
+  const stationKey = headers.find(h => /תחנת חלוקה|נקודת חלוקה|תחנה|נקודה|station|distribution/i.test(h));
+
+  const dynamicExclude = new Set([
+    ...excludeCols,
+    phoneKey,
+    nameKey,
+    orderKey,
+    stationKey
+  ].filter(Boolean));
+
   for (let h of headers) {
-    if (excludeCols.includes(h)) continue;
+    if (dynamicExclude.has(h)) continue;
     
     const val = row[h];
     // Include the column if it has a value and isn't "0"
@@ -138,8 +174,8 @@ function buildMessage(row) {
     }
   }
 
-  const customerName = row['Shipping Name'] ?? row['Customer Name'] ?? row[headers[2]] ?? '';
-  const orderNum = row['Name'] ?? row[headers[1]] ?? '';
+  const customerName = getDynamicName(row);
+  const orderNum = getDynamicOrder(row);
 
   return settings.template
     .replace(/{{name}}/g,         customerName)
@@ -153,7 +189,7 @@ function buildMessage(row) {
 }
 
 function buildWhatsAppUrl(row) {
-  const phone   = cleanPhone(String(row['Billing Phone'] ?? row['Phone'] ?? row[headers[3]] ?? ''));
+  const phone   = cleanPhone(String(getDynamicPhone(row)));
   const message = buildMessage(row);
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 }
@@ -241,6 +277,10 @@ function handleFile(file) {
   reader.readAsArrayBuffer(file);
 }
 
+function shortenHeader(h) {
+  return h.replace(/^אפר\d+\s*-\s*(שבוע ישראלי\s*)?/, '');
+}
+
 function parseActiveSheet() {
   if (!currentWorkbook || !currentSheetName) return;
   try {
@@ -278,6 +318,26 @@ function parseActiveSheet() {
         });
         
         return obj;
+      })
+      .filter(row => {
+        const phone = String(getDynamicPhone(row)).trim();
+        const name  = String(getDynamicName(row)).trim();
+        const order = String(getDynamicOrder(row)).trim();
+        const label = row['תוויות שורה'] ? String(row['תוויות שורה']).trim() : '';
+
+        // Filter out summary/total rows (which sum up wine counts but have no real customer phone/name)
+        const isSummary = 
+          name.includes('סכום') || name.includes('סה"כ') || name.toLowerCase().includes('total') ||
+          order.includes('סכום') || order.includes('סה"כ') || order.toLowerCase().includes('total') ||
+          label.includes('סכום') || label.includes('סה"כ') || label.toLowerCase().includes('total');
+
+        // Filter out placeholder "(ריק)" rows
+        const isPlaceholder = 
+          (!name || name === '(ריק)' || name === 'ריק') &&
+          (!phone || phone === '(ריק)' || phone === 'ריק') &&
+          (!order || order === '(ריק)' || order === 'ריק');
+
+        return !isSummary && !isPlaceholder;
       });
 
     // Populate row label filter
@@ -352,7 +412,8 @@ function renderTable() {
   // Data headers
   headers.forEach(h => {
     const th = document.createElement('th');
-    th.textContent = h;
+    th.textContent = shortenHeader(h);
+    th.title = h; // Show full header on hover
     hr.appendChild(th);
   });
 
